@@ -186,10 +186,14 @@ GTD 用に NEXT とかのキーワードを使う
 ** Org で Anki カードを作る
 Org-roam で書いたメモから [[https://github.com/louietan/anki-editor][louietan/anki-editor]] で Anki カードを生成する。
 
-=M-x anki-editor-push-notes= する時に =anki-editor-mode= マイナーモードが有効でないと、 =.org= に書いた画像が [[https://github.com/louietan/anki-editor/issues/30#issuecomment-450463083][Anki に同期されない]]。そこで、自動的に =anki-editor-mode= を有効にする。
-
+デッキは 1 つ
 #+begin_src emacs-lisp :tangle ./config.el
 ;; Anki-editor
+(setq my/anki-primary-deck "Mega")
+#+end_src
+
+=M-x anki-editor-push-notes= する時に =anki-editor-mode= マイナーモードが有効でないと、 =.org= に指定した画像が [[https://github.com/louietan/anki-editor/issues/30#issuecomment-450463083][Anki に同期されない]]。そこで、自動的に =anki-editor-mode= を有効にする。
+#+begin_src emacs-lisp :tangle ./config.el
 (add-hook 'org-mode-hook #'anki-editor-mode)
 #+end_src
 
@@ -209,12 +213,12 @@ Anki カードのキャプチャ。basic と cloze が作れれば良い。
              '("a" "Anki basic"
                entry
                (file+headline org-my-anki-file "Dispatch Shelf")
-               "* %<%H:%M>   %^g\n:PROPERTIES:\n:ANKI_NOTE_TYPE: Basic\n:ANKI_DECK: Mega\n:END:\n** Front\n%?\n** Back\n%x\n"))
+               (concat "* %<%H:%M>   %^g\n:PROPERTIES:\n:ANKI_NOTE_TYPE: Basic\n:ANKI_DECK: " my/anki-primary-deck "\n:END:\n** Front\n%?\n** Back\n%x\n")))
 (add-to-list 'org-capture-templates
              '("A" "Anki cloze"
                entry
                (file+headline org-my-anki-file "Dispatch Shelf")
-               "* %<%H:%M>   %^g\n:PROPERTIES:\n:ANKI_NOTE_TYPE: Cloze\n:ANKI_DECK: Mega\n:END:\n** Text\n%x\n** Extra\n"))
+               (concat "* %<%H:%M>   %^g\n:PROPERTIES:\n:ANKI_NOTE_TYPE: Cloze\n:ANKI_DECK: " my/anki-primary-deck "\n:END:\n** Text\n%x\n** Extra\n")))
 #+end_src
 
 ~require~ する
