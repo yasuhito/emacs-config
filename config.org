@@ -1,0 +1,239 @@
+#+TITLE: ~/.doom.d/config.el
+
+* 参考文献
+- ~/Desktop/lit-config.pdf
+
+config.el を .org に移行する実験。
+
+- まずはひとつのコードブロックにそのまま取り込む
+- M-x org-babel-demarcate-block でブロックを分けることができるので、単位ごとに下のようにコメントを付けていく
+
+  コメントを付ければ、いらない設定とか不明な設定が見えてくる。
+
+  まずは config.el だけ .org に移行して、ゆくゆくは custom.el とかこのディレクトリすべての .el ファイルを .org に移行する。
+
+* やりたいこと
+** TODO 更新した後の Doom Emacs への反映方法を調べる
+** TODO いらない設定を消す
+** TODO 設定ファイルの .org 化 一般的なドキュメントを書く (Org-Roam に？)
+** DONE 保存したら自動的に tangle するようにする
+** DONE GitHub に入れる
+
+* ただし書き
+=-*- lexical-binding: t; -*-= って何だっけ？
+
+#+begin_src emacs-lisp :tangle ./config.el
+;;; $DOOMDIR/config.el -*- lexical-binding: t; -*-
+
+;; Place your private configuration here! Remember, you do not need to run 'doom
+;; sync' after modifying this file!
+#+end_src
+
+* Org ファイルの保存時に自動的に設定ファイルに変換する
+たまに変更後に =C-c C-v t= を忘れ、Org ファイルと設定ファイルの間に齟齬が生じてしまうことがあります。これを避けるために、Org バッファを保存したときに自動的に =org-babel-tangle= を実行するフックを設定できます。
+
+#+begin_src emacs-lisp :tangle ./config.el
+(add-hook 'org-mode-hook
+          (lambda () (add-hook 'after-save-hook #'org-babel-tangle :append :local)))
+#+end_src
+
+* 名前とメールアドレスの設定
+#+begin_src emacs-lisp :tangle ./config.el
+;; Some functionality uses this to identify you, e.g. GPG configuration, email
+;; clients, file templates and snippets.
+(setq user-full-name "Yasuhito Takamiya"
+      user-mail-address "yasuhito@hey.com")
+#+end_src
+
+* フォントの設定
+とくにいじらない
+#+begin_src emacs-lisp :tangle ./config.el
+;; Doom exposes five (optional) variables for controlling fonts in Doom. Here
+;; are the three important ones:
+;;
+;; + `doom-font'
+;; + `doom-variable-pitch-font'
+;; + `doom-big-font' -- used for `doom-big-font-mode'; use this for
+;;   presentations or streaming.
+;;
+;; They all accept either a font-spec, font string ("Input Mono-12"), or xlfd
+;; font string. You generally only need these two:
+;; (setq doom-font (font-spec :family "monospace" :size 12 :weight 'semi-light)
+;;       doom-variable-pitch-font (font-spec :family "sans" :size 13))
+#+end_src
+
+* 日本語環境の設定
+この設定がなぜ必要だったか忘れた。たしかフォントの設定だったと思うけど...
+いらなかったら消す
+#+begin_src emacs-lisp :tangle ./config.el
+;; 日本語環境を使う
+(set-language-environment "Japanese")
+#+end_src
+
+* テーマの設定
+iA Writer のようになるべくシンプルなテーマが好み。
+#+begin_src emacs-lisp :tangle ./config.el
+;; There are two ways to load a theme. Both assume the theme is installed and
+;; available. You can either set `doom-theme' or manually load a theme with the
+;; `load-theme' function. This is the default:
+(setq doom-theme 'doom-homage-white)
+#+end_src
+
+* 行番号を表示
+#+begin_src emacs-lisp :tangle ./config.el
+;; This determines the style of line numbers in effect. If set to `nil', line
+;; numbers are disabled. For relative line numbers, set this to `relative'.
+(setq display-line-numbers-type t)
+#+end_src
+
+* Org-Mode の設定
+** ディレクトリとかの基本設定
+#+begin_src emacs-lisp :tangle ./config.el
+;; If you use `org' and don't want your org files in the default location below,
+;; change `org-directory'. It must be set before org loads!
+(setq org-directory "~/org/")
+(setq org-agenda-files '("~/org/" "~/org/gtd/" "~/org/roam/" "~/org/roam/daily/"))
+#+end_src
+
+*** TODO Org-Roam でファイルを足すと org-agenda-files に新しく作ったファイルが追加されないので、どうやってやるかを調べること。
+
+** タスク関連の設定
+GTD 用に NEXT とかのキーワードを使う
+
+#+begin_src emacs-lisp :tangle ./config.el
+(after! org
+  (setq org-todo-keywords
+        '((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d)")
+          (sequence "WAITING(w@/!)" "HOLD(h@/!)" "|" "CANCELLED(c@/!)")))
+  (setq my/org-agenda-directory "~/org/gtd/")
+  (setq org-capture-templates
+        `(("i" "inbox" entry (file ,(concat my/org-agenda-directory "inbox.org"))
+           "* TODO %?")
+          ("l" "link" entry (file ,(concat my/org-agenda-directory "inbox.org"))
+           "* TODO %(org-cliplink-capture)" :immediate-finish t)
+          ("c" "org-protocol-capture" entry (file ,(concat my/org-agenda-directory "inbox.org"))
+           "* TODO [[%:link][%:description]]\n\n %i" :immediate-finish t)))
+  (require 'find-lisp)
+  (setq org-agenda-files
+        (find-lisp-find-files org-directory "\.org$"))
+  (setq org-refile-targets '((org-agenda-files . (:level . 1)))))
+#+end_src
+
+** ブラウザからキャプチャ
+#+begin_src emacs-lisp :tangle ./config.el
+;; Capture Links From the Web
+;; https://www.ianjones.us/own-your-second-brain#orga972198
+(require 'org-roam-protocol)
+
+(after! org-roam
+      (setq org-roam-capture-ref-templates
+            '(("r" "ref" plain (function org-roam-capture--get-point)
+               "%?"
+               :file-name "websites/${slug}"
+               :head "#+TITLE: ${title}\n#+ROAM_KEY: ${ref}\n- source :: ${ref}"
+               :unnarrowed t))))
+#+end_src
+
+** 画像
+#+begin_src emacs-lisp :tangle ./config.el
+(use-package org-download
+  :after org
+  :defer nil
+  :custom
+  (org-download-method 'directory)
+  (org-download-image-dir "images")
+  (org-download-heading-lvl nil)
+  :config
+  (require 'org-download))
+
+;;(after! org
+;;        (setq org-download-method 'directory)
+;;        (setq-default org-download-image-dir "~/org/roam/images"))
+#+end_src
+
+** Org-Roam
+#+begin_src emacs-lisp :tangle ./config.el
+(after! (org org-roam)
+  (defun my/org-roam-export-all ()
+    "Re-exports all Org-roam files to Hugo markdown."
+    (interactive)
+    (dolist (f (org-roam--list-all-files))
+      (with-current-buffer (find-file f)
+        (when (s-contains? "permanent notes" (buffer-string))
+          (org-hugo-export-wim-to-md))))))
+#+end_src
+
+** Org-Mode から PDF
+#+begin_src emacs-lisp :tangle ./config.el
+(setq org-latex-pdf-process
+      '("platex -shell-escape %f"
+        "platex -shell-escape %f"
+        "pbibtex %b"
+        "platex -shell-escape %f"
+        "platex -shell-escape %f"
+        "dvipdfmx %b.dvi"))
+#+end_src
+
+** Org-Roam のノートを NV みたいに使う (Deft)
+#+begin_src emacs-lisp :tangle ./config.el
+;; Deft
+(setq deft-recursive t)
+(setq deft-use-filter-string-for-filename t)
+(setq deft-default-extension "org")
+(setq deft-directory "~/org/roam/")
+#+end_src
+
+** Org で Anki カードを作る
+#+begin_src emacs-lisp :tangle ./config.el
+;; Anki-editor
+(add-hook 'org-mode-hook #'anki-editor-mode)
+(setq org-my-anki-file "~/org/roam/anki.org")
+(add-to-list 'org-capture-templates
+             '("a" "Anki basic"
+               entry
+               (file+headline org-my-anki-file "Dispatch Shelf")
+               "* %<%H:%M>   %^g\n:PROPERTIES:\n:ANKI_NOTE_TYPE: Basic\n:ANKI_DECK: Mega\n:END:\n** Front\n%?\n** Back\n%x\n"))
+(add-to-list 'org-capture-templates
+             '("A" "Anki cloze"
+               entry
+               (file+headline org-my-anki-file "Dispatch Shelf")
+               "* %<%H:%M>   %^g\n:PROPERTIES:\n:ANKI_NOTE_TYPE: Cloze\n:ANKI_DECK: Mega\n:END:\n** Text\n%x\n** Extra\n"))
+
+(setq anki-editor-use-math-jax t)
+(require 'anki-editor)
+#+end_src
+
+** 表に日本語が入っていたらズレるのを直す
+#+begin_src emacs-lisp :tangle ./config.el
+(add-hook 'org-mode-hook #'valign-mode)
+#+end_src
+
+* TypeScript
+これ、結局いるのかいらないのか分からない。
+#+begin_src emacs-lisp :tangle ./config.el
+;; Typescript のインデントを 2 にする
+;; https://github.com/hlissner/doom-emacs/issues/2860
+(after! dtrt-indent
+  (setq typescript-indent-level 2)
+  (add-to-list 'dtrt-indent-hook-mapping-list '(typescript-mode javascript typescript-indent-level)))
+#+end_src
+
+* Doom Emacs 設定用マクロの説明
+#+begin_src emacs-lisp :tangle ./config.el
+;; Here are some additional functions/macros that could help you configure Doom:
+;;
+;; - `load!' for loading external *.el files relative to this one
+;; - `use-package!' for configuring packages
+;; - `after!' for running code after a package has loaded
+;; - `add-load-path!' for adding directories to the `load-path', relative to
+;;   this file. Emacs searches the `load-path' when you load packages with
+;;   `require' or `use-package'.
+;; - `map!' for binding new keys
+;;
+;; To get information about any of these functions/macros, move the cursor over
+;; the highlighted symbol at press 'K' (non-evil users must press 'C-c c k').
+;; This will open documentation for it, including demos of how they are used.
+;;
+;; You can also try 'gd' (or 'C-c c d') to jump to their definition and see how
+;; they are implemented.
+#+end_src
