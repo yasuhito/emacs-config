@@ -184,10 +184,27 @@ GTD 用に NEXT とかのキーワードを使う
 #+end_src
 
 ** Org で Anki カードを作る
+Org-roam で書いたメモから [[https://github.com/louietan/anki-editor][louietan/anki-editor]] で Anki カードを生成する。
+
+=M-x anki-editor-push-notes= する時に =anki-editor-mode= マイナーモードが有効でないと、 =.org= に書いた画像が [[https://github.com/louietan/anki-editor/issues/30#issuecomment-450463083][Anki に同期されない]]。そこで、自動的に =anki-editor-mode= を有効にする。
+
 #+begin_src emacs-lisp :tangle ./config.el
 ;; Anki-editor
 (add-hook 'org-mode-hook #'anki-editor-mode)
-(setq org-my-anki-file "~/org/roam/anki.org")
+#+end_src
+
+数式を表示するには、$\TeX$ を画像に変換させるのではなく MathJax を使う。
+#+begin_src emacs-lisp :tangle ./config.el
+(setq anki-editor-use-math-jax t)
+#+end_src
+
+キャプチャした Anki カードのデフォルトの保存先
+#+begin_src emacs-lisp :tangle ./config.el
+(setq org-my-anki-file (concat org-directory "anki.org"))
+#+end_src
+
+Anki カードのキャプチャ。basic と cloze が作れれば良い。
+#+begin_src emacs-lisp :tangle ./config.el
 (add-to-list 'org-capture-templates
              '("a" "Anki basic"
                entry
@@ -198,12 +215,14 @@ GTD 用に NEXT とかのキーワードを使う
                entry
                (file+headline org-my-anki-file "Dispatch Shelf")
                "* %<%H:%M>   %^g\n:PROPERTIES:\n:ANKI_NOTE_TYPE: Cloze\n:ANKI_DECK: Mega\n:END:\n** Text\n%x\n** Extra\n"))
+#+end_src
 
-(setq anki-editor-use-math-jax t)
+~require~ する
+#+begin_src emacs-lisp :tangle ./config.el
 (require 'anki-editor)
 #+end_src
 
-** 表に日本語が入っていたらズレるのを直す
+** Org で表に日本語が入っていたらズレるのを直す
 #+begin_src emacs-lisp :tangle ./config.el
 (add-hook 'org-mode-hook #'valign-mode)
 #+end_src
