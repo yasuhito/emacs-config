@@ -3,6 +3,7 @@
 * 参考文献
 - https://tecosaur.github.io/emacs-config/config.html
 - ~/Desktop/lit-config.pdf
+- https://gitlab.com/nobiot/doom.d/-/blob/master/config.org
 
 config.el を .org に移行する実験。
 
@@ -99,7 +100,7 @@ iA Writer のようになるべくシンプルなテーマが好み。
 ;; There are two ways to load a theme. Both assume the theme is installed and
 ;; available. You can either set `doom-theme' or manually load a theme with the
 ;; `load-theme' function. This is the default:
-(setq doom-theme 'doom-homage-white)
+(setq doom-theme 'doom-one-light)
 #+end_src
 
 * 行番号を表示しない
@@ -207,7 +208,10 @@ https://github.com/jrblevin/deft
   (setq deft-directory org-directory
         deft-recursive t
         deft-extensions '("org")
-        deft-ignore-file-regexp "setup.org\\|anki.org"))
+        deft-ignore-file-regexp "setup.org\\|anki.org"
+        ;; Org ファイル中の #+title などをプレビューに表示しない
+        ;; https://org-roam.discourse.group/t/configure-deft-title-stripping-to-hide-org-roam-template-headers/478
+        deft-strip-summary-regexp "\\([\n ]\\|^#\\+[[:upper:][:lower:]_]+:.*$\\)"))
 #+end_src
 
 ** Org で Anki カードを作る
