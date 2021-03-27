@@ -1,12 +1,13 @@
 #+TITLE: ~/.doom.d/config.el
 
 * 参考文献
+- https://tecosaur.github.io/emacs-config/config.html
 - ~/Desktop/lit-config.pdf
 
 config.el を .org に移行する実験。
 
 - まずはひとつのコードブロックにそのまま取り込む
-- M-x org-babel-demarcate-block でブロックを分けることができるので、単位ごとに下のようにコメントを付けていく
+- =M-x org-babel-demarcate-block= でブロックを分けることができるので、単位ごとに下のようにコメントを付けていく
 
   コメントを付ければ、いらない設定とか不明な設定が見えてくる。
 
@@ -15,34 +16,56 @@ config.el を .org に移行する実験。
 * やりたいこと
 ** TODO 更新した後の Doom Emacs への反映方法を調べる
 ** TODO いらない設定を消す
-** TODO 設定ファイルの .org 化 一般的なドキュメントを書く (Org-Roam に？)
+** TODO 設定ファイルの .org 化
+** TODO 一般的なドキュメントを書く (Org-Roam に？)
 ** DONE 保存したら自動的に tangle するようにする
 ** DONE GitHub に入れる
 
-* ただし書き
-=-*- lexical-binding: t; -*-= って何だっけ？
+* 基本的な設定
+** レキシカルバインディング
+レキシカルバインディングを有効にしたほうが (少し) 速い ([[https://ayatakesi.github.io/lispref/25.1/html/Lexical-Binding.html][Emacs のドキュメント]], [[https://nullprogram.com/blog/2016/12/22/][ブログ記事]])。
 
 #+begin_src emacs-lisp :tangle ./config.el
 ;;; $DOOMDIR/config.el -*- lexical-binding: t; -*-
 
+#+end_src
+
+なんとなく Doom Emacs の元のコメントを残しておく。
+#+begin_src emacs-lisp :tangle ./config.el
 ;; Place your private configuration here! Remember, you do not need to run 'doom
 ;; sync' after modifying this file!
 #+end_src
 
-* Org ファイルの保存時に自動的に設定ファイルに変換する
-たまに変更後に =C-c C-v t= を忘れ、Org ファイルと設定ファイルの間に齟齬が生じてしまうことがあります。これを避けるために、Org バッファを保存したときに自動的に =org-babel-tangle= を実行するフックを設定できます。
+** Org ファイルの保存時に自動的に設定ファイルに変換する
+たまに変更後に =C-c C-v t= を忘れ、Org ファイルと設定ファイルの間に齟齬が生じてしまうことがある。これを避けるため、Org バッファを保存したときに自動的に =org-babel-tangle= を実行するフックを設定できる。
 
 #+begin_src emacs-lisp :tangle ./config.el
 (add-hook 'org-mode-hook
           (lambda () (add-hook 'after-save-hook #'org-babel-tangle :append :local)))
 #+end_src
 
-* 名前とメールアドレスの設定
+** 名前とメールアドレスの設定
 #+begin_src emacs-lisp :tangle ./config.el
 ;; Some functionality uses this to identify you, e.g. GPG configuration, email
 ;; clients, file templates and snippets.
 (setq user-full-name "Yasuhito Takamiya"
       user-mail-address "yasuhito@hey.com")
+#+end_src
+
+** Effective Emacs
+https://sites.google.com/site/steveyegge2/effective-emacs
+
+=M-x= をメタキーを使わずに入力
+#+begin_src emacs-lisp :tangle ./config.el
+(global-set-key "\C-x\C-m" 'execute-extended-command)
+(global-set-key "\C-c\C-m" 'execute-extended-command)
+#+end_src
+
+高速にタイピングをしていてタイプミスをした時は、バックスペースで一文字ずつ消して修正するよりも単語単位で一気に消して打ち直したほうが速い。
+#+begin_src emacs-lisp :tangle ./config.el
+(global-set-key "\C-w" 'backward-kill-word)
+(global-set-key "\C-x\C-k" 'kill-region)
+(global-set-key "\C-c\C-k" 'kill-region)
 #+end_src
 
 * フォントの設定
@@ -79,11 +102,11 @@ iA Writer のようになるべくシンプルなテーマが好み。
 (setq doom-theme 'doom-homage-white)
 #+end_src
 
-* 行番号を表示
+* 行番号を表示しない
 #+begin_src emacs-lisp :tangle ./config.el
 ;; This determines the style of line numbers in effect. If set to `nil', line
 ;; numbers are disabled. For relative line numbers, set this to `relative'.
-(setq display-line-numbers-type t)
+(setq display-line-numbers-type nil)
 #+end_src
 
 * Org-Mode の設定
@@ -174,13 +197,17 @@ GTD 用に NEXT とかのキーワードを使う
         "dvipdfmx %b.dvi"))
 #+end_src
 
-** Org-Roam のノートを NV みたいに使う (Deft)
+** Deft: Org のノートを Notational Velocity のように検索
+https://github.com/jrblevin/deft
+
 #+begin_src emacs-lisp :tangle ./config.el
-;; Deft
-(setq deft-recursive t)
-(setq deft-use-filter-string-for-filename t)
-(setq deft-default-extension "org")
-(setq deft-directory "~/org/roam/")
+(use-package! deft
+  :after org
+  :config
+  (setq deft-directory org-directory
+        deft-recursive t
+        deft-extensions '("org")
+        deft-ignore-file-regexp "setup.org\\|anki.org"))
 #+end_src
 
 ** Org で Anki カードを作る
