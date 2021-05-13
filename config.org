@@ -1,9 +1,11 @@
 #+TITLE: ~/.doom.d/config.el
 
 * 参考文献
+- https://alexpeits.github.io/emacs.d/
 - https://tecosaur.github.io/emacs-config/config.html
 - ~/Desktop/lit-config.pdf
 - https://gitlab.com/nobiot/doom.d/-/blob/master/config.org
+- https://github.com/dangirsh/.doom.d#org-transclusion
 
 config.el を .org に移行する実験。
 
@@ -187,6 +189,57 @@ GTD 用に NEXT とかのキーワードを使う
           (org-hugo-export-wim-to-md))))))
 #+end_src
 
+#+begin_src emacs-lisp :tangle ./config.el
+(defun my/org-roam-refresh ()
+  (interactive)
+  (org-roam-db-build-cache :force)
+  (org-roam-buffer--update-maybe :redisplay))
+#+end_src
+
+** Org-Roam server
+#+begin_src emacs-lisp :tangle ./config.el
+(use-package org-roam-server
+  :ensure t
+  :config
+  (setq org-roam-server-host "127.0.0.1"
+        org-roam-server-port 8080
+        org-roam-server-authenticate nil
+        org-roam-server-export-inline-images t
+        org-roam-server-serve-files nil
+        org-roam-server-served-file-extensions '("pdf" "mp4" "ogv")
+        org-roam-server-network-poll t
+        org-roam-server-network-arrows "from"
+        org-roam-server-network-label-truncate t
+        org-roam-server-network-label-truncate-length 60
+        org-roam-server-network-label-wrap-length 20))
+
+(defun org-roam-server-open ()
+  "Ensure the server is active, then open the roam graph."
+  (interactive)
+  (smartparens-global-mode -1)
+  (org-roam-server-mode 1)
+  (browse-url-xdg-open (format "http://localhost:%d" org-roam-server-port))
+  (smartparens-global-mode 1))
+
+;; automatically enable server-mode
+(after! org-roam
+  (smartparens-global-mode -1)
+  (org-roam-server-mode)
+  (smartparens-global-mode 1))
+
+(setq org-html-mathjax-options
+      '((path "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js")
+        (scale "100")
+        (align "center")
+        (font "TeX")
+        (linebreaks "false")
+        (autonumber "AMS")
+        (indent "0em")
+        (multlinewidth "85%")
+        (tagindent ".8em")
+        (tagside "right")))
+#+end_src
+
 ** Org-Mode から PDF
 #+begin_src emacs-lisp :tangle ./config.el
 (setq org-latex-pdf-process
@@ -204,6 +257,8 @@ https://github.com/jrblevin/deft
 #+begin_src emacs-lisp :tangle ./config.el
 (use-package! deft
   :after org
+  :bind (:map deft-mode-map
+         ("C-c C-g" . my/deft-refresh))
   :config
   (setq deft-directory org-directory
         deft-recursive t
@@ -211,7 +266,11 @@ https://github.com/jrblevin/deft
         deft-ignore-file-regexp "setup.org\\|anki.org"
         ;; Org ファイル中の #+title などをプレビューに表示しない
         ;; https://org-roam.discourse.group/t/configure-deft-title-stripping-to-hide-org-roam-template-headers/478
-        deft-strip-summary-regexp "\\([\n ]\\|^#\\+[[:upper:][:lower:]_]+:.*$\\)"))
+        deft-strip-summary-regexp "\\([\n ]\\|^#\\+[[:upper:][:lower:]_]+:.*$\\)")
+  (defun my/deft-refresh ()
+    (interactive)
+    (my/org-roam-refresh)
+    (deft-refresh)))
 #+end_src
 
 ** Org で Anki カードを作る
@@ -244,12 +303,17 @@ Anki カードのキャプチャ。basic と cloze が作れれば良い。
              '("a" "Anki basic"
                entry
                (file+headline org-my-anki-file "Dispatch Shelf")
-               (concat "* %<%H:%M>   %^g\n:PROPERTIES:\n:ANKI_NOTE_TYPE: Basic\n:ANKI_DECK: " my/anki-primary-deck "\n:END:\n** Front\n%?\n** Back\n%x\n")))
+               "* %<%H:%M>   %^g\n:PROPERTIES:\n:ANKI_NOTE_TYPE: Basic\n:ANKI_DECK: Mega\n:END:\n** Front\n%?\n** Back\n%x\n"))
 (add-to-list 'org-capture-templates
              '("A" "Anki cloze"
                entry
                (file+headline org-my-anki-file "Dispatch Shelf")
-               (concat "* %<%H:%M>   %^g\n:PROPERTIES:\n:ANKI_NOTE_TYPE: Cloze\n:ANKI_DECK: " my/anki-primary-deck "\n:END:\n** Text\n%x\n** Extra\n")))
+               "* %<%H:%M>   %^g\n:PROPERTIES:\n:ANKI_NOTE_TYPE: Cloze\n:ANKI_DECK: Mega\n:END:\n** Text\n%x\n** Extra\n"))
+#+end_src
+
+無視するタグ
+#+begin_src emacs-lisp :tangle ./config.el
+(setq anki-editor-ignored-org-tags '(“export” “noexport”))
 #+end_src
 
 ~require~ する
@@ -261,6 +325,28 @@ Anki カードのキャプチャ。basic と cloze が作れれば良い。
 #+begin_src emacs-lisp :tangle ./config.el
 (add-hook 'org-mode-hook #'valign-mode)
 #+end_src
+
+** 日本語 LaTeX
+#+begin_src emacs-lisp :tangle ./config.el
+(use-package! ox-latex
+  :ensure t
+  :config
+  (add-to-list 'org-latex-classes
+               '("jsarticle"
+                 "\\documentclass[dvipdfmx,12pt]{article}"
+                 ("\\section{%s}" . "\\section*{%s}")
+                 ("\\subsection{%s}" . "\\subsection*{%s}")
+                 ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+                 ("\\paragraph{%s}" . "\\paragraph*{%s}")
+                 ("\\subparagraph{%s}" . "\\subparagraph*{%s}")
+                 )))
+ #+end_src
+
+** org-transclusion
+[[https://github.com/nobiot/org-transclusion][nobiot/org-transclusion]]
+
+#+transclude: t
+[[file:~/Library/Mobile Documents/iCloud~com~appsonthemove~beorg/Documents/org/roam/20210329095350-org_transclusion.org::org-transclusion configuration (config.el)][org-transclusion configuration (config.el)]]
 
 * TypeScript
 これ、結局いるのかいらないのか分からない。
