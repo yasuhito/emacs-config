@@ -342,11 +342,43 @@ Anki カードのキャプチャ。basic と cloze が作れれば良い。
                  )))
  #+end_src
 
+** org-fragtog
+#+begin_src emacs-lisp :tangle ./config.el
+(use-package! org-fragtog
+  :hook (org-mode . org-fragtog-mode))
+#+end_src
+
+** helm-org-rifle
+=.org= ファイルの全文検索。deft では日本語が全文検索できない & 遅いのでこちらを使う。
+https://github.com/alphapapa/org-rifle
+
+とりあえず =C-c r= にバインドしてみたけどこれでいいのか？
+
+#+begin_src emacs-lisp :tangle ./config.el
+(use-package helm-org-rifle
+  :ensure t
+  :after (helm org)
+  :bind
+  ("C-c r" . helm-org-rifle-org-directory))
+#+end_src
+
 ** org-transclusion
 [[https://github.com/nobiot/org-transclusion][nobiot/org-transclusion]]
 
 #+transclude: t
 [[file:~/Library/Mobile Documents/iCloud~com~appsonthemove~beorg/Documents/org/roam/20210329095350-org_transclusion.org::org-transclusion configuration (config.el)][org-transclusion configuration (config.el)]]
+
+* Yasnippet
+タブキーを押さなくてもスニペットを勝手に展開する
+https://github.com/joaotavora/yasnippet/issues/998#issuecomment-496449546
+
+#+begin_src emacs-lisp :tangle ./config.el
+(defun my/yas-try-expanding ()
+    (when (and (boundp 'yas-minor-mode) yas-minor-mode)
+      (let ((yas-buffer-local-condition ''(require-snippet-condition . auto)))
+        (yas-expand))))
+(add-hook 'post-command-hook #'my/yas-try-expanding)
+#+end_src
 
 * TypeScript
 これ、結局いるのかいらないのか分からない。

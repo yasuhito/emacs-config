@@ -1,5 +1,4 @@
-# -*- mode: snippet -*-
-# name: braket
 # key: braket
+# name: braket
 # --
-\braket{}
+\braket{$0}
